@@ -7,7 +7,8 @@ const char *password = "11223344";
 WiFiUDP g_udp;
 
 const int g_port = 8888;
-byte packetBuffer[512]; //buffer to hold incoming and outgoing packets
+const int BUFF_SIZE = 512;
+byte packetBuffer[BUFF_SIZE]; //buffer to hold incoming and outgoing packets
 
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
@@ -20,39 +21,44 @@ void printWifiStatus() {
   Serial.println(ip);
 }
 
+void ledOFF() {
+  digitalWrite(BUILTIN_LED, HIGH);
+}
 
-void setup() {
-  Serial.begin(57600, SERIAL_8N1);
+void ledON() {
+  digitalWrite(BUILTIN_LED, LOW);
+}
+
+void toggleLED() {
+  digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
+}
+
+void startWiFi() {
+  ledON();
+
   WiFi.begin(ssid, password);
-
-//  Serial.print("[Connecting]");
-//  Serial.print(ssid);
-  int tries=0;
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-    tries++;
-    if (tries > 30){
-      break;
-    }
+    delay(1000);
+    toggleLED();
   }
-//  Serial.println();  
-//
-//  printWifiStatus();
-//
-//  Serial.println("Connected to wifi");
-//  Serial.print("Udp server started at port ");
-//  Serial.println(g_port);
 
   // start UDP server
   g_udp.begin(g_port);
+
+  ledOFF();
+
+  Serial.begin(57600, SERIAL_8N1);
+}
+
+void setup() {
+  pinMode(BUILTIN_LED, OUTPUT); //Debug LED
+  startWiFi();
 }
 
 void loop() {
   int noBytes = g_udp.parsePacket();
   if ( noBytes ) {
-    g_udp.read(packetBuffer,noBytes); // read the packet into the buffer
-
-    Serial.write(packetBuffer, noBytes);
+    int cnt = g_udp.read(packetBuffer, BUFF_SIZE); // read the packet into the buffer
+    Serial.write(packetBuffer, cnt);
   }
 }
